@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hw4-docker-deployment   # Уникальное имя деплоймента в кластере
+spec:
+  replicas: 1                   # Количество запускаемых копий 
+  selector:
+    matchLabels:
+      app: hw4-docker           # Связка деплоймента с подами
+  template:
+    metadata:
+      labels:
+        app: hw4-docker         # Метка, которую получит контейнер при запуске
+    spec:
+      containers:
+      - name: hw4-docker        # Имя контейнера внутри пода
+        image: items-api:latest  # Ссылка на собранный Docker-образ
+        imagePullPolicy: IfNotPresent # Использовать локальный образ, если он есть
+        ports:
+        - containerPort: 8000   # Порт, на котором работает FastAPI внутри контейнера
+        
+        # Выполнение обязательного условия по ограничению ресурсов
+        resources:
+          limits:
+            memory: "256Mi"     # Максимально допустимый объем памяти
+            cpu: "500m"         # Максимально допустимая нагрузка на CPU (0.5 ядра)
+          requests:
+            memory: "128Mi"     # Гарантированный резерв памяти
+            cpu: "200m"         # Гарантированный резерв CPU
+
+---
+# Описание сетевого сервиса для доступа к приложению
+apiVersion: v1
+kind: Service
+metadata:
+  name: hw4-docker-service
+spec:
+  selector:
+    app: hw4-docker             # Перенаправляет трафик на поды с этой меткой
+  ports:
+    - protocol: TCP
+      port: 80                  # Внешний порт, который откроет облако
+      targetPort: 8000          # Порт внутри контейнера, куда пойдет трафик
+  type: LoadBalancer            # Автоматическое создание внешнего IP в облаке
